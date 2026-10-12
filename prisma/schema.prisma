@@ -1,0 +1,180 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName     String
+  email        String     @unique
+  phoneNumber  String
+  password     String     @default("123456")
+  fcmToken     String?
+  profileImage String?
+  role         UserRole   @default(User)
+  status       UserStatus @default(Active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model PendingUser {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  email       String   @unique
+  phoneNumber String
+  fullName    String
+  password    String
+  createdAt   DateTime @default(now())
+
+  @@map("pending_users")
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  otp       String
+  expiresAt DateTime
+
+  @@map("otps")
+}
+
+model Slot {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  eventId   String    @db.ObjectId
+  date      DateTime
+  startTime String
+  endTime   String
+  quantity  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  event     Event     @relation(fields: [eventId], references: [id])
+  bookings  Booking[]
+
+  @@map("slots")
+}
+
+model Event {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  eventName    String
+  bannerImage  String
+  sliderImages String[]
+  overlapImgs  String[]
+  sideImage    String?
+  content      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  slots        Slot[]
+  tickets      Ticket[]
+  bookings     Booking[]
+  reviews      Review[]
+
+  @@map("events")
+}
+
+model Ticket {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  eventId     String    @db.ObjectId
+  ticketName  String
+  ticketPrice Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  event       Event     @relation(fields: [eventId], references: [id])
+  bookings    Booking[]
+
+  @@map("tickets")
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId   String   @db.ObjectId
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [eventId], references: [id])
+
+  @@map("reviews")
+}
+
+model Booking {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String?       @db.ObjectId
+  discountCode   String?
+  eventId        String        @db.ObjectId
+  ticketId       String        @db.ObjectId
+  browserId      String
+  slotId         String        @db.ObjectId
+  quantity       Int           @default(1)
+  price          Float
+  companyName    String?
+  fullName       String
+  email          String
+  phoneNumber    String
+  street         String
+  postalCode     String
+  city           String
+  filmVlog       Boolean       @default(false)
+  isVideoGrapher Boolean       @default(false)
+  participants   Json
+  notes          String
+  paymentGateway Gateway
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  status         BookingStatus @default(Pending)
+  slot           Slot          @relation(fields: [slotId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
+  ticket         Ticket        @relation(fields: [ticketId], references: [id])
+  event          Event         @relation(fields: [eventId], references: [id])
+
+  @@unique([browserId, slotId])
+  @@map("bookings")
+}
+
+enum Gateway {
+  Klarna
+  Paypal
+  BankTransfer
+}
+
+enum BookingStatus {
+  Pending
+  Completed
+  Rejected
+}
+
+model Discount {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  code        String   @unique
+  discount    Int
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("discounts")
+}
+
+enum UserStatus {
+  Active
+  Blocked
+  Deleted
+}
+
+enum UserRole {
+  User
+  Admin
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+}
